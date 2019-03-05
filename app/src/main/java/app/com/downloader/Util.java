@@ -5,6 +5,7 @@ package app.com.downloader;
  */
 
 import android.os.Environment;
+import android.text.TextUtils;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -39,8 +40,38 @@ public class Util {
 
     private static OkHttpClient okHttpClient = new OkHttpClient();
 
-    public static void downloadFileFromUrl(String downloadFileUrl, File existLocalFile) {
+    public static long getDownloadUrlFileSize(String downloadUrl)
+    {
+        long ret = 0;
+
         try {
+            if (downloadUrl != null && !TextUtils.isEmpty(downloadUrl)) {
+                Request.Builder builder = new Request.Builder();
+                builder = builder.url(downloadUrl);
+                Request request = builder.build();
+
+                Call call = okHttpClient.newCall(request);
+                Response response = call.execute();
+
+                if(response != null) {
+                    if(response.isSuccessful())
+                    {
+                        String contentLength = response.header("Content-Length");
+                        ret = Long.parseLong(contentLength);
+                    }
+                }
+            }
+        }catch(Exception ex)
+        {
+            ex.printStackTrace();
+        }finally {
+            return ret;
+        }
+    }
+
+    public static void downloadFileFromUrl(String downloadFileUrl, File existLocalFile, DownloadTask downloadTask) {
+        try {
+            long downloadFileLength = getDownloadUrlFileSize(downloadFileUrl);
             long existLocalFileLength = existLocalFile.length();
             Request.Builder builder = new Request.Builder();
             builder = builder.url(downloadFileUrl);
@@ -49,23 +80,38 @@ public class Util {
 
             Call call = okHttpClient.newCall(request);
             Response response = call.execute();
+            if(downloadFileLength == 0)
+            {
+                downloadTask.setMessage("Feild to download file " + existLocalFile.getName());
+                downloadTask.setMessage("---------------------------------------------------");
+            }else if(downloadFileLength == existLocalFileLength)
+            {
+                downloadTask.setMessage("File " + existLocalFile.getName() + " is downloaded");
+                downloadTask.setMessage("---------------------------------------------------");
+            }else {
 
-            if (response != null && response.isSuccessful()) {
-                RandomAccessFile downloadFile = new RandomAccessFile(existLocalFile, "rw");
-                downloadFile.seek(existLocalFileLength);
+                if (response != null && response.isSuccessful()) {
+                    RandomAccessFile downloadFile = new RandomAccessFile(existLocalFile, "rw");
+                    downloadFile.seek(existLocalFileLength);
 
-                ResponseBody responseBody = response.body();
-                InputStream inputStream = responseBody.byteStream();
-                BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
-                byte data[] = new byte[102400];
+                    ResponseBody responseBody = response.body();
+                    InputStream inputStream = responseBody.byteStream();
+                    BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
+                    byte data[] = new byte[102400];
 
-                int readLength = bufferedInputStream.read(data);
-
-                while (readLength != -1) {
-
-                    downloadFile.write(data, 0, readLength);
-
-                    readLength = bufferedInputStream.read(data);
+                    int readLength = bufferedInputStream.read(data);
+                    long totalReadLength = 0;
+                    int progress = 0;
+                    while (readLength != -1) {
+                        downloadFile.write(data, 0, readLength);
+                        totalReadLength = totalReadLength + readLength;
+                        int downloadProgress = (int) ((totalReadLength + existLocalFileLength) * 100 / downloadFileLength);
+                        if(progress + 10 < downloadProgress){
+                            downloadTask.setMessage("File " + existLocalFile.getName() + " is download " + downloadProgress + " %");
+                            progress = downloadProgress;
+                        }
+                        readLength = bufferedInputStream.read(data);
+                    }
                 }
             }
 

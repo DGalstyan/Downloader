@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceDisconnected(ComponentName name) {
             // This is called when the connection with the service has
             // been unexpectedly disconnected
-         //   downloadBinder = null;
+            downloadBinder = null;
         }
     };
 
@@ -112,9 +112,9 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(MainActivity.this, "The Storage permission is required", Toast.LENGTH_LONG).show();
             ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_WRITE_PERMISSION_CODE);
         } else {
-            startDownloadButton.setEnabled(false);
             downloadBinder.checkFiles();
             downloadBinder.startDownload();
+            startDownloadButton.setEnabled(false);
         }
     }
 

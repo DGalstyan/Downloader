@@ -49,8 +49,7 @@ public class DownloadTask extends AsyncTask<String, Integer, Integer> {
                 listener.sendDownloadNotification("File "+model.getFileName()+" is downloading...");
                 setMessage("File "+model.getFileName()+" is downloading...");
                 model.setStatus(Util.STATE_DOWNLOADED);
-                Util.downloadFileFromUrl(model.getUrl(), downloadLocalFile);
-                setMessage("File "+model.getFileName()+" is downloaded!");
+                Util.downloadFileFromUrl(model.getUrl(), downloadLocalFile, this);
             }
 
         }
